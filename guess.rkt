@@ -225,25 +225,27 @@
 ;; computes the entropy of each attribute, producing a list of attribute/entropy
 ;; pairs.
 ;; Examples:
+(check-within (entropy-attributes
+  (list
+   (list 'large 126 59) (list 'angry 161 24)
+   (list 'small 17 168) (list 'flies 170 15)
+   (list 'swims 162 23) (list 'medium 42 143))
+  (list
+    (list 'large 146 669) (list 'angry 469 346)
+    (list 'small 454 361) (list 'flies 615 200)
+    (list 'swims 365 450) (list 'medium 215 600)))
+        (list
+         (list 'large #i0.5663948489858) (list 'angry #i0.6447688190492)
+         (list 'small #i0.5825593868115) (list 'flies #i0.6702490498564)
+         (list 'swims #i0.6017998773730) (list 'medium #i0.6901071708677)) 0.001)
 
-
-;; entropy : (list Sym Nat Nat) (list Sym Nat Nat) -> Num
-(define (entropy positive-counts negative-counts) 
-  (local
-    [(define a (second positive-counts))
-     (define b (second negative-counts))
-     (define c (third positive-counts))
-     (define d (third negative-counts))
-     (define (p-nm n m) 
-       (cond
-         [(zero? (+ n m)) 0.5]
-         [else (/ n (+ n m))]))
-     (define (e-p p) 
-       (cond
-         [(zero? p) 0]
-         [else (* (- 0 p) (/ (log p) (log 2)))]))]
-    (+ (* (p-nm (+ a b) (+ c d)) (+ (e-p (p-nm a b)) (e-p (p-nm b a)))) 
-       (* (p-nm (+ c d) (+ a b)) (+ (e-p (p-nm c d)) (e-p (p-nm d c)))))))
+;; entropy-attributes : (listof (list Sym Nat Nat)) (listof (list Sym Nat Nat)) -> 
+;;                                   (listof (Sym Num))
+(define (entropy-attributes positive negative) 
+  (cond
+      [(empty? positive) empty]
+      [else (cons (list (first (first positive)) (entropy (first positive) (first negative))) 
+                  (entropy-attributes (rest positive) (rest negative)))]))
 
 ;; Tests:
 (check-within (entropy (list 'a 0 100) (list 'b 100 0)) #i0.0 0.001)
