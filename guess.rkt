@@ -1,5 +1,5 @@
 #lang racket
-(require test-engine/racket-tests)
+;;(require test-engine/racket-tests)
 (require "animals.rkt")
 
 ;; ***********************************
@@ -250,6 +250,56 @@
 ;; Tests:
 (check-within (entropy (list 'a 0 100) (list 'b 100 0)) #i0.0 0.001)
 
+;; -------------------------
+;; best-attributes question
+
+;; (best-attributes entropies) Consumes a non-empty list of  attribute/entropy pa
+;; irs. Produces the attribute with the minimum entropy.
+;; Examples:
+(check-expect (best-attributes (list
+         (list 'large #i0.5663948489858) (list 'angry #i0.6447688190492)
+         (list 'small #i0.5825593868115) (list 'flies #i0.6702490498564)
+         (list 'swims #i0.6017998773730) (list 'medium #i0.6901071708677))) 'large)
+(check-expect (best-attributes (list (list 'a 1) (list 'b 2) (list 'c 3))) 'a)
+(check-expect (best-attributes (list (list 'a 5) (list 'b 4) (list 'c 6))) 'b)
+
+;; best-attributes : (listof (Sym Num)) -> Sym
+(define (best-attributes lst) 
+  (local
+    [(define (best-inner lst best) 
+       (cond
+         [(empty? lst) (first best)]
+         [(> (second (first lst)) (second best)) (best-inner (rest lst) best)]
+         [else (best-inner (rest lst) (first lst))]))]
+    (best-inner (rest lst) (first lst))))
+
+;; Tests:
+
+;; -------------------------
+;; build-dt question
+
+;; (best-attributes entropies) Consumes a non-empty list of  attribute/entropy pa
+;; irs. Produces the attribute with the minimum entropy.
+;; Examples:
+(check-expect (best-attributes (list
+         (list 'large #i0.5663948489858) (list 'angry #i0.6447688190492)
+         (list 'small #i0.5825593868115) (list 'flies #i0.6702490498564)
+         (list 'swims #i0.6017998773730) (list 'medium #i0.6901071708677))) 'large)
+(check-expect (best-attributes (list (list 'a 1) (list 'b 2) (list 'c 3))) 'a)
+(check-expect (best-attributes (list (list 'a 5) (list 'b 4) (list 'c 6))) 'b)
+
+;; best-attributes : (listof (Sym Num)) -> Sym
+(define (best-attributes lst) 
+  (local
+    [(define (best-inner lst best) 
+       (cond
+         [(empty? lst) (first best)]
+         [(> (second (first lst)) (second best)) (best-inner (rest lst) best)]
+         [else (best-inner (rest lst) (first lst))]))]
+    (best-inner (rest lst) (first lst))))
+
+;; Tests:
 
 
-(test)
+
+;;(test)
