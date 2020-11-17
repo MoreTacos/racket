@@ -1,5 +1,5 @@
 #lang racket
-(require test-engine/racket-tests)
+;;(require test-engine/racket-tests)
 (require "animals.rkt")
 
 ;; ***********************************
@@ -89,20 +89,20 @@
 (define (split-examples examples sym) 
   (local
     [
-     (define (split-match examples sym) 
+     (define (split-match exam sym) 
        (cond
-         [(empty? examples) empty]
-         [(match? (first examples) sym) (cons (first examples) (split-match (rest examples) sym))]
-         [else (split-match (rest examples) sym)]))
-     (define (split-not-match examples sym)
+         [(empty? exam) empty]
+         [(match? (first exam) sym) (cons (first exam) (split-match (rest exam) sym))]
+         [else (split-match (rest exam) sym)]))
+     (define (split-not-match exam sym)
        (cond
-         [(empty? examples) empty]
-         [(match? (first examples) sym) (split-not-match (rest examples) sym)]
-         [else (cons (first examples) (split-not-match (rest examples) sym))]))
-     (define (match? animal sym) 
+         [(empty? exam) empty]
+         [(match? (first exam) sym) (split-not-match (rest exam) sym)]
+         [else (cons (first exam) (split-not-match (rest exam) sym))]))
+     (define (match? animal s) 
                 (cond
                   [(empty? animal) false]
-                  [else (or (symbol=? (first animal) sym) (match? (rest animal) sym))]))
+                  [else (or (symbol=? (first animal) s) (match? (rest animal) s))]))
      ]
     (list (split-match examples sym) (split-not-match examples sym))))
 
@@ -251,9 +251,9 @@
 (check-within (entropy (list 'a 0 100) (list 'b 100 0)) #i0.0 0.001)
 
 ;; -------------------------
-;; best-attributes question
+;; best-attribute question
 
-;; (best-attributes entropies) Consumes a non-empty list of  attribute/entropy pa
+;; (best-attribute entropies) Consumes a non-empty list of  attribute/entropy pa
 ;; irs. Produces the attribute with the minimum entropy.
 ;; Examples:
 (check-expect (best-attribute (list
@@ -263,7 +263,7 @@
 (check-expect (best-attribute (list (list 'a 1) (list 'b 2) (list 'c 3))) 'a)
 (check-expect (best-attribute (list (list 'a 5) (list 'b 4) (list 'c 6))) 'b)
 
-;; best-attributes : (listof (Sym Num)) -> Sym
+;; best-attribute : (listof (Sym Num)) -> Sym
 (define (best-attribute lst) 
   (local
     [(define (best-inner lst best) 
@@ -284,49 +284,48 @@
 
 ;; build-dt : (listof (cons Sym (listof Sym))) Sym -> DT
 ;; where DT: (anyof Bool (list Sym DT DT))
-(define (build-dt examples label) 
+(define (build-dt examples label)
   (local
-    [(define attr (collect-attributes examples))
+    [(define attr-lst (collect-attributes examples))
      (define sp (split-examples examples label))
      (define positive-examples (first sp))
      (define negative-examples (second sp))
      (define total (length examples))
-     (define histogram-positive (histogram positive-examples))
-     (define histogram-negative (histogram negative-examples))
-     (define entropy-attr (entropy-attributes 
-                            (augment-histogram histogram-positive attr total)
-                            (augment-histogram histogram-negative attr total)))
-     (define root (best-attribute entropy-attr))
-     (define root-examples (split-examples examples root))
-     (define (rm-attr-inner attr ex)
-       (cond
-         [(empty? ex) empty]
-         [(symbol=? (first ex) attr) (rm-attr-inner attr (rest ex))]
-         [else (cons (first ex) (rm-attr-inner attr (rest ex)))]))
-     (define (rm-attr attr exam) 
-       (cond
-         [(empty? exam) empty]
-         [else (cons (rm-attr-inner attr (first exam)) (rm-attr attr (rest exam)))]))
-     (define with-list (rm-attr root (first root-examples)))
-     (define without-list (second root-examples))
-     (define dt1 (build-dt with-list label))
-     (define dt2 (build-dt without-list label))]
+     ]
     (cond
       [(empty? positive-examples) false]
       [(empty? negative-examples) true]
-      [(empty? attr) 
+      [(empty? attr-lst)
        (cond
          [(> (length positive-examples) (length negative-examples)) true]
          [else false])]
-      [else 
-       (cond
-         [(equal? dt1 dt2) dt1]
-         [else (list root dt1 dt2)])])))
+      [else
+        (local [(define histogram-positive (histogram positive-examples))
+                   (define histogram-negative (histogram negative-examples))
+                   (define ent (entropy-attributes
+                       (augment-histogram histogram-positive attr-lst total)
+                       (augment-histogram histogram-negative attr-lst total)))
+                   (define root (best-attribute ent))
+                   (define root-examples (split-examples examples root))
+                   (define (rm-attr-inner attr-lst ex)
+                      (cond
+                         [(empty? ex) empty]
+                         [(symbol=? (first ex) attr-lst) (rm-attr-inner attr-lst (rest ex))]
+                         [else (cons (first ex) (rm-attr-inner attr-lst (rest ex)))]))
+                   (define (rm-attr attr-lst exam) 
+                      (cond
+                         [(empty? exam) empty]
+                         [else (cons (rm-attr-inner attr-lst (first exam)) 
+                                     (rm-attr attr-lst (rest exam)))]))
+                   (define with-list (rm-attr root (first root-examples)))
+                   (define without-list (second root-examples))]
+               (cond
+                 [(equal? with-list without-list) (build-dt with-list label)]
+                 [else (list root (build-dt with-list label) (build-dt without-list label))]))])))
+
+
 
 ;; Tests:
-(build-dt (random-animals 1000) 'goose)
-;;(build-dt (random-animals 1000) 'crow)
-;;(build-dt (random-animals 1000) 'emu)
 
 
 ;;(test)
