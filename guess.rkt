@@ -1,5 +1,5 @@
 #lang racket
-;;(require test-engine/racket-tests)
+(require test-engine/racket-tests)
 (require "animals.rkt")
 
 ;; ***********************************
@@ -277,6 +277,56 @@
 
 ;; -------------------------
 ;; build-dt question
+
+;; (build-dt examples label) It consumes a list of examples and a label,
+;; and outputs a decision tree based on the label and examles.
+;; Examples:
+
+;; build-dt : (listof (cons Sym (listof Sym))) Sym -> DT
+;; where DT: (anyof Bool (list Sym DT DT))
+(define (build-dt examples label) 
+  (local
+    [(define attr (collect-attributes examples))
+     (define sp (split-examples examples label))
+     (define positive-examples (first sp))
+     (define negative-examples (second sp))
+     (define total (length examples))
+     (define histogram-positive (histogram positive-examples))
+     (define histogram-negative (histogram negative-examples))
+     (define entropy-attr (entropy-attributes 
+                            (augment-histogram histogram-positive attr total)
+                            (augment-histogram histogram-negative attr total)))
+     (define root (best-attribute entropy-attr))
+     (define root-examples (split-examples examples root))
+     (define (rm-attr-inner attr ex)
+       (cond
+         [(empty? ex) empty]
+         [(symbol=? (first ex) attr) (rm-attr-inner attr (rest ex))]
+         [else (cons (first ex) (rm-attr-inner attr (rest ex)))]))
+     (define (rm-attr attr exam) 
+       (cond
+         [(empty? exam) empty]
+         [else (cons (rm-attr-inner attr (first exam)) (rm-attr attr (rest exam)))]))
+     (define with-list (rm-attr root (first root-examples)))
+     (define without-list (second root-examples))
+     (define dt1 (build-dt with-list label))
+     (define dt2 (build-dt without-list label))]
+    (cond
+      [(empty? positive-examples) false]
+      [(empty? negative-examples) true]
+      [(empty? attr) 
+       (cond
+         [(> (length positive-examples) (length negative-examples)) true]
+         [else false])]
+      [else 
+       (cond
+         [(equal? dt1 dt2) dt1]
+         [else (list root dt1 dt2)])])))
+
+;; Tests:
+(build-dt (random-animals 1000) 'goose)
+;;(build-dt (random-animals 1000) 'crow)
+;;(build-dt (random-animals 1000) 'emu)
 
 
 ;;(test)
