@@ -1,5 +1,5 @@
 #lang racket
-;;(require test-engine/racket-tests)
+(require test-engine/racket-tests)
 (require "animals.rkt")
 
 ;; ***********************************
@@ -328,4 +328,38 @@
 ;; Tests:
 
 
-;;(test)
+;; -------------------------
+;; train-classifier question
+
+;; (train-classifier examples label) Generate a decision tree from the examples, and
+;; then produces a predicate that consumes a list of attributes and produces a 
+;; decision.
+;; Examples:
+(check-expect (goose? (list 'large 'angry 'flies 'swims)) true)
+(check-expect (goose? (list 'small 'angry)) false)
+(check-expect (squirrel? (list 'large 'angry 'flies 'swims)) false)
+(check-expect (squirrel? (list 'small 'angry)) true)
+(check-expect (crow? (list 'angry 'flies 'medium)) true)
+
+;; train-classifier : (cons Sym (listof Sym)) Sym -> ((listof Sym) -> Bool)
+(define (train-classifier examples label) 
+  (local 
+    [(define dt (build-dt examples label))
+     (define (is-in? sym lst) 
+       (cond
+         [(empty? lst) false]
+         [else (or (symbol=? sym (first lst)) (is-in? sym (rest lst)))]))
+     (define (is-label? attr-lst) 
+       (cond
+        [(boolean? dt) dt]
+        [(is-in? (first dt) attr-lst) 
+         (local [(define dt (first dt))] (is-label? attr-lst))]
+        [else (local [(define dt (second dt))] (is-label? attr-lst))]))]
+    is-label?))
+
+;; Tests:
+(define goose? (train-classifier (random-animals 1000) 'goose))
+(define squirrel? (train-classifier (random-animals 1000) 'squirrel))
+(define crow? (train-classifier (random-animals 1000) 'crow))
+
+(test)
